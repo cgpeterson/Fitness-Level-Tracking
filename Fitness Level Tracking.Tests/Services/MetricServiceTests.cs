@@ -190,6 +190,61 @@ public class MetricServiceTests
         Assert.Equal(expected, result);
     }
 
+    [Theory]
+    [InlineData(55, false, PerformanceTier.Peak)]
+    [InlineData(30, false, PerformanceTier.Good)]
+    [InlineData(15, false, PerformanceTier.Average)]
+    [InlineData(5, false, PerformanceTier.BelowAverage)]
+    public void EvaluateTier_MaxPushUps_Female_ShouldReturnCorrectTier(double value, bool isMale, PerformanceTier expected)
+    {
+        // Act
+        var result = _sut.EvaluateTier(FitnessMetricType.MaxPushUps, value, 140, isMale);
+
+        // Assert
+        Assert.Equal(expected, result);
+    }
+
+    [Theory]
+    [InlineData(200, true, PerformanceTier.Peak)]
+    [InlineData(100, true, PerformanceTier.Good)]
+    [InlineData(45, true, PerformanceTier.Average)]
+    [InlineData(15, true, PerformanceTier.BelowAverage)]
+    public void EvaluateTier_DeadHang_Male_ShouldReturnCorrectTier(double value, bool isMale, PerformanceTier expected)
+    {
+        // Act
+        var result = _sut.EvaluateTier(FitnessMetricType.DeadHangTime, value, 180, isMale);
+
+        // Assert
+        Assert.Equal(expected, result);
+    }
+
+    [Theory]
+    [InlineData(130, false, PerformanceTier.Peak)]
+    [InlineData(60, false, PerformanceTier.Good)]
+    [InlineData(20, false, PerformanceTier.Average)]
+    [InlineData(10, false, PerformanceTier.BelowAverage)]
+    public void EvaluateTier_DeadHang_Female_ShouldReturnCorrectTier(double value, bool isMale, PerformanceTier expected)
+    {
+        // Act
+        var result = _sut.EvaluateTier(FitnessMetricType.DeadHangTime, value, 140, isMale);
+
+        // Assert
+        Assert.Equal(expected, result);
+    }
+
+    [Theory]
+    [InlineData(2, PerformanceTier.Peak)]
+    [InlineData(1, PerformanceTier.Good)]
+    [InlineData(0, PerformanceTier.Average)]
+    public void EvaluateTier_ShoeAndSockBalance_ShouldReturnCorrectTier(double value, PerformanceTier expected)
+    {
+        // Act
+        var result = _sut.EvaluateTier(FitnessMetricType.ShoeAndSockBalance, value);
+
+        // Assert
+        Assert.Equal(expected, result);
+    }
+
     [Fact]
     public void CalculateImprovement_HigherIsBetter_ShouldCalculatePositiveImprovement()
     {

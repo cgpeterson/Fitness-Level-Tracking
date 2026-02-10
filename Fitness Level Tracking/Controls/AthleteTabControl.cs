@@ -17,12 +17,15 @@ public sealed class AthleteTabControl : UserControl
     private readonly IAthleteService _athleteService;
     private readonly IMetricService _metricService;
     private readonly Athlete _athlete;
+    private bool _isLoading;
 
     // Athlete info controls (compact header)
     private TextBox _nameTextBox = null!;
     private NumericUpDown _bodyweightInput = null!;
     private NumericUpDown _heightInput = null!;
     private ComboBox _sexCombo = null!;
+    private DateTimePicker _dobPicker = null!;
+    private Label _ageLabel = null!;
 
     // Results subgrid and filters
     private GalaxySubgridControl _metricsSubgrid = null!;
@@ -78,28 +81,32 @@ public sealed class AthleteTabControl : UserControl
         var panel = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
-            ColumnCount = 9,
+            ColumnCount = 12,
             RowCount = 2,
             BackColor = Color.FromArgb(5, 15, 12),
             Padding = new Padding(10, 5, 10, 5)
         };
 
         // Column styles for responsive layout
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));  // Name label
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 180)); // Name input
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 20)); // Spacer
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));  // Weight label
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80)); // Weight input
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));  // Height label
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70)); // Height input
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));  // Sex label
-        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); // Sex input + Remove button
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));  // 0: Name label
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 180)); // 1: Name input
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 20)); // 2: Spacer
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));  // 3: Weight label
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80)); // 4: Weight input
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));  // 5: Height label
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70)); // 6: Height input
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));  // 7: Sex label
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80)); // 8: Sex input
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));  // 9: DOB label
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120)); // 10: DOB input
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); // 11: Age + Remove button
 
         // Row 1: Labels
         panel.Controls.Add(CreateCompactLabel("Name:"), 0, 0);
         panel.Controls.Add(CreateCompactLabel("Weight (lbs):"), 3, 0);
         panel.Controls.Add(CreateCompactLabel("Height (in):"), 5, 0);
         panel.Controls.Add(CreateCompactLabel("Sex:"), 7, 0);
+        panel.Controls.Add(CreateCompactLabel("DOB:"), 9, 0);
 
         // Row 2: Inputs
         _nameTextBox = new TextBox
@@ -136,18 +143,9 @@ public sealed class AthleteTabControl : UserControl
         _heightInput.ValueChanged += OnAthleteInfoChanged;
         panel.Controls.Add(_heightInput, 6, 1);
 
-        // Sex combo + Remove button container
-        var sexContainer = new FlowLayoutPanel
-        {
-            Dock = DockStyle.Fill,
-            FlowDirection = FlowDirection.LeftToRight,
-            BackColor = Color.Transparent,
-            Margin = new Padding(0)
-        };
-
         _sexCombo = new ComboBox
         {
-            Width = 80,
+            Dock = DockStyle.Fill,
             DropDownStyle = ComboBoxStyle.DropDownList,
             BackColor = InputBackground,
             ForeColor = TextWhite,
@@ -156,19 +154,50 @@ public sealed class AthleteTabControl : UserControl
         _sexCombo.Items.AddRange(["Male", "Female"]);
         _sexCombo.SelectedIndex = 0;
         _sexCombo.SelectedIndexChanged += OnAthleteInfoChanged;
-        sexContainer.Controls.Add(_sexCombo);
+        panel.Controls.Add(_sexCombo, 8, 1);
+
+        _dobPicker = new DateTimePicker
+        {
+            Dock = DockStyle.Fill,
+            Format = DateTimePickerFormat.Short,
+            ShowCheckBox = true,
+            Checked = false,
+            BackColor = InputBackground,
+            ForeColor = TextWhite
+        };
+        _dobPicker.ValueChanged += OnAthleteInfoChanged;
+        panel.Controls.Add(_dobPicker, 10, 1);
+
+        // Age label + Remove button container
+        var trailingContainer = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            FlowDirection = FlowDirection.LeftToRight,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0)
+        };
+
+        _ageLabel = new Label
+        {
+            Text = "",
+            ForeColor = TextWhite,
+            AutoSize = true,
+            Font = new Font("Segoe UI", 8f, FontStyle.Regular),
+            Margin = new Padding(5, 6, 10, 0)
+        };
+        trailingContainer.Controls.Add(_ageLabel);
 
         // Remove athlete button (compact)
         var removeButton = new GalaxyButton
         {
             Text = "✕ Remove",
             Size = new Size(85, 26),
-            Margin = new Padding(20, 0, 0, 0)
+            Margin = new Padding(10, 0, 0, 0)
         };
         removeButton.Click += OnRemoveAthlete;
-        sexContainer.Controls.Add(removeButton);
+        trailingContainer.Controls.Add(removeButton);
 
-        panel.Controls.Add(sexContainer, 8, 1);
+        panel.Controls.Add(trailingContainer, 11, 1);
 
         return panel;
     }
@@ -247,6 +276,7 @@ public sealed class AthleteTabControl : UserControl
         // Wire up subgrid events
         _metricsSubgrid.NewButtonClicked += OnNewRecordClicked;
         _metricsSubgrid.DeleteButtonClicked += OnDeleteRecord;
+        _metricsSubgrid.RowDoubleClicked += OnEditRecord;
         _metricsSubgrid.RefreshButtonClicked += (s, e) => RefreshMetricsGrid();
         _metricsSubgrid.SelectionChanged += (s, e) => DataChanged?.Invoke(this, EventArgs.Empty);
 
@@ -454,12 +484,31 @@ public sealed class AthleteTabControl : UserControl
 
     private void LoadAthleteData()
     {
-        _nameTextBox.Text = _athlete.Name;
-        _bodyweightInput.Value = (decimal)(_athlete.BodyweightLbs ?? 180);
-        _heightInput.Value = (decimal)(_athlete.HeightInches ?? 70);
-        _sexCombo.SelectedIndex = _athlete.IsMale ?? true ? 0 : 1;
+        _isLoading = true;
+        try
+        {
+            _nameTextBox.Text = _athlete.Name;
+            _bodyweightInput.Value = (decimal)(_athlete.BodyweightLbs ?? 180);
+            _heightInput.Value = (decimal)(_athlete.HeightInches ?? 70);
+            _sexCombo.SelectedIndex = _athlete.IsMale ?? true ? 0 : 1;
 
-        RefreshMetricsGrid();
+            if (_athlete.DateOfBirth.HasValue)
+            {
+                _dobPicker.Value = _athlete.DateOfBirth.Value.ToDateTime(TimeOnly.MinValue);
+                _dobPicker.Checked = true;
+            }
+            else
+            {
+                _dobPicker.Checked = false;
+            }
+
+            UpdateAgeLabel();
+            RefreshMetricsGrid();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
     }
 
     public void RefreshMetricsGrid()
@@ -472,17 +521,48 @@ public sealed class AthleteTabControl : UserControl
 
     private void OnAthleteInfoChanged(object? sender, EventArgs e)
     {
+        if (_isLoading) return;
         if (string.IsNullOrWhiteSpace(_nameTextBox.Text)) return;
+
+        var dob = _dobPicker.Checked
+            ? DateOnly.FromDateTime(_dobPicker.Value.Date)
+            : (DateOnly?)null;
 
         _athleteService.UpdateAthlete(
             _athlete.Id,
             _nameTextBox.Text,
-            _athlete.DateOfBirth,
+            dob,
             (double)_bodyweightInput.Value,
             (double)_heightInput.Value,
             _sexCombo.SelectedIndex == 0);
 
+        UpdateAgeLabel();
+        RefreshMetricsGrid();
         DataChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void OnEditRecord(object? sender, DataGridViewCellEventArgs e)
+    {
+        var recordId = _metricsSubgrid.GetSelectedRecordId();
+        if (!recordId.HasValue) return;
+
+        var record = _athlete.MetricRecords.FirstOrDefault(r => r.Id == recordId.Value);
+        if (record is null) return;
+
+        var isMale = _sexCombo.SelectedIndex == 0;
+        using var form = new GalaxyRecordEditForm(record, _metricService, isMale);
+
+        if (form.ShowDialog(this) == DialogResult.OK)
+        {
+            _athleteService.UpdateMetricRecord(
+                _athlete.Id,
+                recordId.Value,
+                form.NewValue,
+                form.NewDate);
+
+            RefreshMetricsGrid();
+            DataChanged?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     private void OnDeleteRecord(object? sender, EventArgs e)
@@ -507,6 +587,22 @@ public sealed class AthleteTabControl : UserControl
         if (result == DialogResult.Yes)
         {
             AthleteRemoved?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    private void UpdateAgeLabel()
+    {
+        if (_dobPicker.Checked)
+        {
+            var dob = DateOnly.FromDateTime(_dobPicker.Value.Date);
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var age = today.Year - dob.Year;
+            if (dob > today.AddYears(-age)) age--;
+            _ageLabel.Text = $"Age: {age}";
+        }
+        else
+        {
+            _ageLabel.Text = "";
         }
     }
 }

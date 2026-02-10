@@ -47,6 +47,11 @@ public interface IAthleteService
         Dictionary<FitnessMetricType, double> metrics, DateOnly recordedDate, string? notes = null);
 
     /// <summary>
+    /// Updates a metric record's value and date.
+    /// </summary>
+    MetricRecord? UpdateMetricRecord(Guid athleteId, Guid recordId, double newValue, DateOnly newDate, string? notes = null);
+
+    /// <summary>
     /// Removes a metric record from an athlete.
     /// </summary>
     bool RemoveMetricRecord(Guid athleteId, Guid recordId);

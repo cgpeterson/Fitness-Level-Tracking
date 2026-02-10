@@ -196,10 +196,12 @@ public class EndToEndTests : IDisposable
     [Fact]
     public void FunctionalTests_ShouldEvaluateQualitativeMetrics()
     {
-        // Shoe & Sock Balance: Pass = 1, Fail = 0
-        var balancePass = _metricService.EvaluateTier(FitnessMetricType.ShoeAndSockBalance, 1);
+        // Shoe & Sock Balance: 0=Fail, 1=Struggle, 2=Smooth
+        var balanceSmooth = _metricService.EvaluateTier(FitnessMetricType.ShoeAndSockBalance, 2);
+        var balanceStruggle = _metricService.EvaluateTier(FitnessMetricType.ShoeAndSockBalance, 1);
         var balanceFail = _metricService.EvaluateTier(FitnessMetricType.ShoeAndSockBalance, 0);
-        Assert.Equal(PerformanceTier.Good, balancePass);
+        Assert.Equal(PerformanceTier.Peak, balanceSmooth);
+        Assert.Equal(PerformanceTier.Good, balanceStruggle);
         Assert.Equal(PerformanceTier.Average, balanceFail);
 
         // Deep Squat Hold: 0=Heels up, 1=Heels down, 2=Resting
@@ -209,6 +211,44 @@ public class EndToEndTests : IDisposable
         Assert.Equal(PerformanceTier.Average, squatHeelsUp);
         Assert.Equal(PerformanceTier.Good, squatHeelsDown);
         Assert.Equal(PerformanceTier.Peak, squatResting);
+    }
+
+    [Fact]
+    public void TierEvaluation_ShouldChangeWhenBodyweightChanges()
+    {
+        var athleteService = new AthleteService(_metricService, _testDataFile);
+
+        // Athlete at 200 lbs, Deadlift 5RM 275 lbs
+        // Est 1RM = 275 * 1.15 = 316.25 -> 316.25/200 = 1.58x BW = Average
+        var athlete = athleteService.AddAthlete("Weight Changer", null, 200, 70, true);
+        athleteService.RecordMetric(athlete.Id, FitnessGroup.NeuromuscularStructural,
+            FitnessMetricType.DeadliftFiveRepMax, 275, new DateOnly(2024, 1, 15));
+
+        var tierBefore = _metricService.EvaluateTier(
+            FitnessMetricType.DeadliftFiveRepMax, 275, 200, true);
+        Assert.Equal(PerformanceTier.Average, tierBefore);
+
+        // Athlete loses weight to 150 lbs
+        // Est 1RM = 275 * 1.15 = 316.25 -> 316.25/150 = 2.11x BW = Good
+        athleteService.UpdateAthlete(athlete.Id, athlete.Name, null, 150, 70, true);
+
+        var tierAfter = _metricService.EvaluateTier(
+            FitnessMetricType.DeadliftFiveRepMax, 275, athlete.BodyweightLbs, athlete.IsMale);
+        Assert.Equal(PerformanceTier.Good, tierAfter);
+    }
+
+    [Fact]
+    public void TierEvaluation_ShouldChangeWhenSexChanges()
+    {
+        // Dead Hang 50 seconds as male = Average (threshold: 30s)
+        var tierMale = _metricService.EvaluateTier(
+            FitnessMetricType.DeadHangTime, 50, 160, true);
+        Assert.Equal(PerformanceTier.Average, tierMale);
+
+        // Dead Hang 50 seconds as female = Good (threshold: 45s)
+        var tierFemale = _metricService.EvaluateTier(
+            FitnessMetricType.DeadHangTime, 50, 160, false);
+        Assert.Equal(PerformanceTier.Good, tierFemale);
     }
 
     [Fact]

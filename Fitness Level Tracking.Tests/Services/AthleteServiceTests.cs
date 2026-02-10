@@ -231,6 +231,68 @@ public class AthleteServiceTests : IDisposable
     }
 
     [Fact]
+    public void UpdateMetricRecord_ShouldReplaceValueAndDate()
+    {
+        // Arrange
+        var athlete = _sut.AddAthlete("Test Athlete", null, 180, 70, true);
+        var originalDate = new DateOnly(2024, 1, 15);
+        var record = _sut.RecordMetric(athlete.Id, FitnessGroup.MetabolicMorphological,
+            FitnessMetricType.RestingHeartRate, 72, originalDate, "original notes");
+
+        // Act
+        var newDate = new DateOnly(2024, 2, 20);
+        var updated = _sut.UpdateMetricRecord(athlete.Id, record.Id, 58, newDate);
+
+        // Assert
+        Assert.NotNull(updated);
+        Assert.Equal(58, updated.Value);
+        Assert.Equal(newDate, updated.RecordedDate);
+        Assert.Equal(FitnessMetricType.RestingHeartRate, updated.MetricType);
+        Assert.Equal(FitnessGroup.MetabolicMorphological, updated.Group);
+        Assert.Equal(1, updated.Quarter);
+        Assert.Equal(2024, updated.Year);
+        Assert.Equal("original notes", updated.Notes);
+        Assert.Single(athlete.MetricRecords);
+    }
+
+    [Fact]
+    public void UpdateMetricRecord_WithInvalidId_ShouldReturnNull()
+    {
+        // Arrange
+        var athlete = _sut.AddAthlete("Test Athlete");
+
+        // Act
+        var result = _sut.UpdateMetricRecord(athlete.Id, Guid.NewGuid(), 50, new DateOnly(2024, 1, 15));
+
+        // Assert
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task SaveAsync_And_LoadAsync_ShouldPersistDateOfBirth()
+    {
+        // Arrange
+        var dob = new DateOnly(1990, 6, 15);
+        var athlete = _sut.AddAthlete("DOB Test Athlete", dob, 170, 68, false);
+
+        // Act - Save
+        await _sut.SaveAsync();
+
+        // Create new service instance and load
+        var newService = new AthleteService(_metricService, _testDataFile);
+        await newService.LoadAsync();
+
+        // Assert
+        var loadedAthlete = newService.GetAthleteById(athlete.Id);
+        Assert.NotNull(loadedAthlete);
+        Assert.Equal("DOB Test Athlete", loadedAthlete.Name);
+        Assert.Equal(dob, loadedAthlete.DateOfBirth);
+        Assert.Equal(170, loadedAthlete.BodyweightLbs);
+        Assert.Equal(68, loadedAthlete.HeightInches);
+        Assert.False(loadedAthlete.IsMale);
+    }
+
+    [Fact]
     public async Task LoadAsync_WithNonExistentFile_ShouldNotThrow()
     {
         // Arrange
