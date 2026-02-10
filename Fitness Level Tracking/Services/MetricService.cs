@@ -157,19 +157,30 @@ public sealed class MetricService : IMetricService
                 }
             },
 
-            FitnessMetricType.DeadHangTime => value switch
+            FitnessMetricType.DeadHangTime => male switch
             {
-                >= 180 => PerformanceTier.Peak,
-                >= 90 => PerformanceTier.Good,
-                >= 30 => PerformanceTier.Average,
-                _ => PerformanceTier.BelowAverage
+                true => value switch
+                {
+                    >= 180 => PerformanceTier.Peak,
+                    >= 90 => PerformanceTier.Good,
+                    >= 30 => PerformanceTier.Average,
+                    _ => PerformanceTier.BelowAverage
+                },
+                false => value switch
+                {
+                    >= 120 => PerformanceTier.Peak,
+                    >= 45 => PerformanceTier.Good,
+                    >= 15 => PerformanceTier.Average,
+                    _ => PerformanceTier.BelowAverage
+                }
             },
 
             // Group 3: Functional & Dynamic
             FitnessMetricType.ShoeAndSockBalance => value switch
             {
-                >= 1 => PerformanceTier.Good, // Pass
-                _ => PerformanceTier.Average  // Fail
+                >= 2 => PerformanceTier.Peak,    // Smooth/Fluid
+                >= 1 => PerformanceTier.Good,    // Complete w/ struggle
+                _ => PerformanceTier.Average     // Cannot complete
             },
 
             FitnessMetricType.DeepSquatHold => value switch
@@ -226,9 +237,9 @@ public sealed class MetricService : IMetricService
             FitnessMetricType.DeadliftFiveRepMax => ("1.5x BW", "2.0x BW", "> 2.5x BW"),
             FitnessMetricType.NeutralPressRepMax => ("0.5x BW", "0.75x BW", "> 1.0x BW"),
             FitnessMetricType.MaxPushUps => isMale ? ("20 reps", "40 reps", "75+ reps") : ("10 reps", "25 reps", "50+ reps"),
-            FitnessMetricType.DeadHangTime => ("30-60 sec", "90-120 sec", "> 180 sec"),
+            FitnessMetricType.DeadHangTime => isMale ? ("30-60 sec", "90-120 sec", "> 180 sec") : ("15-30 sec", "45-90 sec", "> 120 sec"),
 
-            FitnessMetricType.ShoeAndSockBalance => ("Cannot complete", "Complete w/ struggle", "Smooth/Fluid"),
+            FitnessMetricType.ShoeAndSockBalance => ("Cannot complete (0)", "Complete w/ struggle (1)", "Smooth/Fluid (2)"),
             FitnessMetricType.DeepSquatHold => ("Heels up", "Heels down 2 min", "Resting position"),
             FitnessMetricType.FarmerCarryDistance => ("Cannot lift", "20-40 meters", "> 60 meters"),
             FitnessMetricType.SittingRisingTest => ("< 6 points", "8 points", "10 points"),

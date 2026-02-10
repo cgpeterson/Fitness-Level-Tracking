@@ -346,7 +346,7 @@ public sealed class GalaxyRecordEntryForm : Form
             FitnessMetricType.NeutralPressRepMax => (0, 500, 0),
             FitnessMetricType.MaxPushUps => (0, 200, 0),
             FitnessMetricType.DeadHangTime => (0, 600, 0),
-            FitnessMetricType.ShoeAndSockBalance => (0, 1, 0),
+            FitnessMetricType.ShoeAndSockBalance => (0, 2, 0),
             FitnessMetricType.DeepSquatHold => (0, 2, 0),
             FitnessMetricType.FarmerCarryDistance => (0, 200, 0),
             FitnessMetricType.SittingRisingTest => (0, 10, 0),

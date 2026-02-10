@@ -36,6 +36,7 @@ public sealed class GalaxySubgridControl : UserControl
     public event EventHandler? RefreshButtonClicked;
     public event EventHandler? DeleteButtonClicked;
     public event EventHandler<DataGridViewCellEventArgs>? RowClicked;
+    public event EventHandler<DataGridViewCellEventArgs>? RowDoubleClicked;
     public event EventHandler? SelectionChanged;
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
@@ -204,6 +205,10 @@ public sealed class GalaxySubgridControl : UserControl
         grid.CellMouseEnter += OnCellMouseEnter;
         grid.CellMouseLeave += OnCellMouseLeave;
         grid.CellClick += (s, e) => RowClicked?.Invoke(this, e);
+        grid.CellDoubleClick += (s, e) =>
+        {
+            if (e.RowIndex >= 0) RowDoubleClicked?.Invoke(this, e);
+        };
         grid.SelectionChanged += (s, e) => SelectionChanged?.Invoke(this, EventArgs.Empty);
 
         return grid;
@@ -422,7 +427,12 @@ public sealed class GalaxySubgridControl : UserControl
         {
             FitnessMetricType.WaistToHeightRatio => $"{value:F2}",
             FitnessMetricType.TwelveMinuteRun => $"{value:F2} {unit}",
-            FitnessMetricType.ShoeAndSockBalance => value >= 1 ? "Pass" : "Fail",
+            FitnessMetricType.ShoeAndSockBalance => value switch
+            {
+                >= 2 => "Smooth",
+                >= 1 => "Struggle",
+                _ => "Fail"
+            },
             FitnessMetricType.DeepSquatHold => value switch
             {
                 >= 2 => "Resting",

@@ -104,6 +104,32 @@ public sealed class AthleteService : IAthleteService
         return records.AsReadOnly();
     }
 
+    public MetricRecord? UpdateMetricRecord(Guid athleteId, Guid recordId, double newValue, DateOnly newDate, string? notes = null)
+    {
+        var athlete = GetAthleteById(athleteId);
+        if (athlete is null) return null;
+
+        var existing = athlete.MetricRecords.FirstOrDefault(r => r.Id == recordId);
+        if (existing is null) return null;
+
+        athlete.RemoveMetricRecord(recordId);
+
+        var quarter = _metricService.GetQuarter(newDate);
+        var updated = new MetricRecord
+        {
+            Group = existing.Group,
+            MetricType = existing.MetricType,
+            Value = newValue,
+            RecordedDate = newDate,
+            Quarter = quarter,
+            Year = newDate.Year,
+            Notes = notes ?? existing.Notes
+        };
+
+        athlete.AddMetricRecord(updated);
+        return updated;
+    }
+
     public bool RemoveMetricRecord(Guid athleteId, Guid recordId)
     {
         var athlete = GetAthleteById(athleteId);
